@@ -1,7 +1,54 @@
 import torch
 from torch.nn import Module, Parameter, Sigmoid
+from .base import LearningRule
+
+class CDRule(LearningRule):
+    """ Online Contrastive Divergence Learning Rule"""
+    def parameters_for(self, pattern):
+        v_sample, h_sample, v_sample_2, h_sample_2 = self.model.gibbs_sample(pattern)
+
+        positive_gradient = torch.ger(v_sample, h_sample)
+        negative_gradient = torch.ger(v_sample_2, h_sample_2)
+
+        return (self._lr * (positive_gradient - negative_gradient),
+                self._lr * (v_sample - v_sample_2),
+                self._lr * (h_sample - h_sample_2))
+
+    def step(self, batch):
+        for index in range(0, len(batch), self.mini_batch_size):
+            delta_w = torch.zeros(self.model.weights.data.shape)
+            delta_v_biases = torch.zeros(self.model.visible_biases.data.shape)
+            delta_h_biases = torch.zeros(self.model.hidden_biases.data.shape)
+
+            n = 0
+            for pattern in batch[index:index+self.mini_batch_size]:
+                pattern_delta_w, pattern_delta_v_b, pattern_delta_h_b = self.parameters_for(pattern)
+                delta_w.add_(pattern_delta_w)
+                delta_v_biases.add_(pattern_delta_v_b)
+                delta_h_biases.add_(pattern_delta_h_b)
+                n += 1
+
+            self.model.weights.data.add_(delta_w.div_(n))
+            self.model.visible_biases.data.add_(delta_v_biases.div_(n))
+            self.model.hidden_biases.data.add_(delta_h_biases.div_(n))
+
+    @property
+    def learning_rate(self):
+        return self._lr
+
+    @learning_rate.setter
+    def learning_rate(self, value):
+        self._lr = torch.Tensor([value]).type(self.dtype)
+
+    def __init__(self, model, lr=0.01, mini_batch_size=1, dtype=torch.FloatTensor):
+        super(CDRule, self).__init__(model)
+        self.dtype = dtype
+        self.learning_rate = lr
+        self.mini_batch_size = mini_batch_size
 
 class RBM(Module):
+    """ Restricted Boltzman Machine model """
+
     visible_activation_module = Sigmoid
     hidden_activation_module = Sigmoid
 
@@ -97,6 +144,30 @@ class RBM(Module):
     @property
     def hidden_units(self):
         return self._nr_hiddens
+
+    def gibbs_sample(self, pattern, samples=1):
+        """ Performs a gibbs sampling
+
+          Args:
+            pattern: Visible pattern
+            samples: Number of sampling gibbs iterations
+
+          Returns:
+            A tuple (pattern, h_sample, v_sample, h_sample_2) were
+            h_sample is a hidden state sample generated from `pattern`,
+            v_sample is a visible pattern generated from `h_sample` after samples iterations
+            and h_sample_2 is a hidden state sample generated from `v_sample`
+        """
+        h_sample = self.sample_h_given_v(pattern)
+
+        v_sample = None
+        h_sample_2 = torch.Tensor(h_sample)
+
+        for _ in range(samples):
+            v_sample = self.sample_v_given_h(h_sample_2)
+            h_sample_2 = self.sample_h_given_v(v_sample)
+
+        return pattern, h_sample, v_sample, h_sample_2
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
