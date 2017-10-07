@@ -1,3 +1,4 @@
+# See LICENSE file for copyright and license details.
 import torch
 from torch.nn import Module, Parameter, Sigmoid
 from .base import LearningRule

@@ -1,3 +1,4 @@
+# See LICENSE file for copyright and license details.
 import unittest
 import numpy as np
 from numpy import testing
