@@ -9,6 +9,7 @@ class Trainer(object):
         self._learning_rule = learning_rule
         self._epoch = 0
         self._hooks = []
+        self._remaining_epochs = 0
 
     @property
     def epoch(self):
@@ -32,6 +33,8 @@ class Trainer(object):
         for batch in batchs:
             self.check_batch(batch)
 
+        self._remaining_epochs = epochs
+
         self._notify('pre_training')
 
         for _ in range(epochs):
@@ -40,8 +43,12 @@ class Trainer(object):
                 self._learning_rule.step(batch)
             self._notify('post_epoch')
             self._epoch += 1
+            self._remaining_epochs -= 1
 
         self._notify('post_training')
+
+    def remaining_epochs(self):
+        return self._remaining_epochs
 
 
     def attach(self, hook):
