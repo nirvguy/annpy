@@ -75,3 +75,23 @@ class TrainingHook:
     @property
     def trainer(self):
         return self._trainer
+
+class StatusHook(TrainingHook):
+    """ Training hook for log the start and end of training
+    """
+
+    def __init__(self, trainer):
+        super(StatusHook, self).__init__(trainer)
+
+    def pre_training(self):
+        print('Training started...')
+
+    def pre_epoch(self):
+        print('\tEpoch {} started...'.format(self._trainer.epoch+1))
+
+    def post_epoch(self):
+        print('\tEpoch {} finished.'.format(self._trainer.epoch+1))
+
+    def post_training(self):
+        print('Training ended.')
+
