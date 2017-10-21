@@ -133,3 +133,31 @@ class ErrorHook(TrainingHook):
         error = self.error_calculator()
         self._errors.append(error)
         print("Epoch {} error: {}.".format(self._trainer.epoch+1, error))
+
+class TimingHook(TrainingHook):
+    """ Training Hook for log the training time between epochs
+    """
+
+    def __init__(self, trainer):
+        super(TimingHook, self).__init__(trainer)
+        self._epoch_times = []
+
+    @staticmethod
+    def time_format(elapsed_seconds):
+        return str(timedelta(seconds=elapsed_seconds))
+
+    def mean_error(self):
+        return sum(self._epoch_times)/len(self._epoch_times)
+
+    def pre_epoch(self):
+        self.start_time = time.time()
+
+    def post_epoch(self):
+        self.end_time = time.time()
+        elapsed_seconds = self.end_time - self.start_time
+        self._epoch_times.append(elapsed_seconds)
+
+        eta = self.mean_error() * self._trainer._remaining_epochs
+
+        print("Epoch {} training time: {}".format(self._trainer.epoch+1, self.time_format(elapsed_seconds)))
+        print("ETA: {}".format(self.time_format(eta)))
