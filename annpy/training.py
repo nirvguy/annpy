@@ -95,3 +95,34 @@ class StatusHook(TrainingHook):
     def post_training(self):
         print('Training ended.')
 
+class ErrorHook(TrainingHook):
+    """ Training Hook for log error at each epoch
+    """
+
+    def __init__(self, trainer,
+                 error_calculator,
+                 measure_before_training):
+        """ Constructor
+
+          Args:
+            trainer (Trainer):              Trainer instance
+            error_calculator (callable):    Error calculating procedure
+            measure_before_training (bool): True for calculate error before start training
+        """
+        super(ErrorHook, self).__init__(trainer)
+        self.measure_before_training = measure_before_training
+        self.error_calculator = error_calculator
+        self._errors = []
+
+    @property
+    def errors(self):
+        return self._errors
+
+    def pre_training(self):
+        if self.measure_before_training:
+            print("Error before training: {}.".format(self.error_calculator()))
+
+    def post_epoch(self):
+        error = self.error_calculator()
+        self._errors.append(error)
+        print("Epoch {} error: {}.".format(self._trainer.epoch+1, error))
