@@ -100,12 +100,16 @@ class RBM(Module):
     def _net_visible(self, hidden):
         """ Return the net visible stimulus given a hidden sample vector
         """
-        return self.weights.data.matmul(hidden) + self.visible_biases.data
+        x=hidden.matmul(self.weights.data.t())
+
+        return x + self.visible_biases.data
 
     def _net_hidden(self, visible):
         """ Return the net hidden stimulus given a visible pattern vector
         """
-        return visible.matmul(self.weights.data) + self.hidden_biases.data
+        x=visible.matmul(self.weights.data)
+
+        return x + self.hidden_biases.data
 
     def reconstruct(self, visible, k=1):
         """ Reconstruct the true visible pattern
