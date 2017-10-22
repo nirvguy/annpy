@@ -1,7 +1,7 @@
 # See LICENSE file for copyright and license details.
 import sys
 import unittest
-from annpy.training import Trainer, TrainingHook
+from annpy.training import Trainer
 from annpy.base import LearningRule
 import numpy as np
 import torch
@@ -98,7 +98,7 @@ class TrainerTest(unittest.TestCase):
         self.assertEqualTensor(self.lr.batchs()[2], torch.Tensor([[0], [1]]))
         self.assertEqualTensor(self.lr.batchs()[3], torch.Tensor([[2], [3]]))
 
-from annpy.training import ErrorHook, StatusHook
+from annpy.training.hooks import ErrorHook, StatusHook
 
 class Hooks(unittest.TestCase):
     def assertOutputEquals(self, expectedOutput):
