@@ -2,7 +2,7 @@
 import sys
 import unittest
 from annpy.training import Trainer
-from annpy.base import LearningRule
+from annpy.models.base import LearningRule
 import numpy as np
 import torch
 

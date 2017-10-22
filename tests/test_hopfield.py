@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from numpy import testing
 from numpy import random as np_rnd
-from annpy.hopfield import Hopfield, HebbsRule
+from annpy.models.hopfield import Hopfield, HebbsRule
 from itertools import product
 import torch
 
