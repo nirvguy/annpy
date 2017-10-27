@@ -5,33 +5,34 @@ from .base import LearningRule
 
 class CDRule(LearningRule):
     """ Online Contrastive Divergence Learning Rule"""
-    def parameters_for(self, pattern):
+    def update_deltas(self, pattern, deltas):
         v_sample, h_sample, v_sample_2, h_sample_2 = self.model.gibbs_sample(pattern)
 
         positive_gradient = torch.ger(v_sample, h_sample)
         negative_gradient = torch.ger(v_sample_2, h_sample_2)
 
-        return (self._lr * (positive_gradient - negative_gradient),
-                self._lr * (v_sample - v_sample_2),
-                self._lr * (h_sample - h_sample_2))
+        deltas[self._model.weights].add_(self._lr * (positive_gradient - negative_gradient))
+        deltas[self._model.visible_biases].add_(self._lr * (v_sample - v_sample_2))
+        deltas[self._model.hidden_biases].add_(self._lr * (h_sample - h_sample_2))
+
+    def reset_deltas(self, deltas):
+        deltas[self._model.weights] = torch.zeros(self.model.weights.data.shape)
+        deltas[self._model.visible_biases] = torch.zeros(self.model.visible_biases.data.shape)
+        deltas[self._model.hidden_biases] = torch.zeros(self.model.hidden_biases.data.shape)
 
     def step(self, batch):
+        deltas = {}
         for index in range(0, len(batch), self.mini_batch_size):
-            delta_w = torch.zeros(self.model.weights.data.shape)
-            delta_v_biases = torch.zeros(self.model.visible_biases.data.shape)
-            delta_h_biases = torch.zeros(self.model.hidden_biases.data.shape)
-
             n = 0
-            for pattern in batch[index:index+self.mini_batch_size]:
-                pattern_delta_w, pattern_delta_v_b, pattern_delta_h_b = self.parameters_for(pattern)
-                delta_w.add_(pattern_delta_w)
-                delta_v_biases.add_(pattern_delta_v_b)
-                delta_h_biases.add_(pattern_delta_h_b)
-                n += 1
+            self.reset_deltas(deltas)
 
-            self.model.weights.data.add_(delta_w.div_(n))
-            self.model.visible_biases.data.add_(delta_v_biases.div_(n))
-            self.model.hidden_biases.data.add_(delta_h_biases.div_(n))
+            b = batch[index:index+self.mini_batch_size]
+
+            for pattern in b:
+                self.update_deltas(pattern, deltas)
+
+            for parameter, update in deltas.items():
+                parameter.data.add_(update).div_(len(b))
 
     @property
     def learning_rate(self):
