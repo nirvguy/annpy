@@ -49,12 +49,6 @@ class CDRule(LearningRule):
 
 class RBM(Module):
     """ Restricted Boltzman Machine model """
-
-    visible_activation_module = Sigmoid
-    hidden_activation_module = Sigmoid
-
-    visible_sampler = torch.bernoulli
-    hidden_sampler = torch.bernoulli
     @staticmethod
     def random_uniform_tensor(dtype, shape, std=0.01):
         return torch.normal(means=torch.zeros(*shape), std=std).type(dtype)
@@ -86,9 +80,6 @@ class RBM(Module):
         """ Reset the network parameters such as weights and hidden and visible biases
         """
 
-        self._visible_activation = self.__class__.visible_activation_module()
-        self._hidden_activation = self.__class__.hidden_activation_module()
-
         if initial_weights is not None:
             self.weights = Parameter(initial_weights)
         else:
@@ -103,6 +94,9 @@ class RBM(Module):
             self.hidden_biases = Parameter(initial_hidden_biases)
         else:
             self.hidden_biases = Parameter(self.random_uniform_tensor(dtype, (self._nr_hiddens, )))
+
+        self.visible_activation = Sigmoid()
+        self.hidden_activation = Sigmoid()
 
     def _net_visible(self, hidden):
         """ Return the net visible stimulus given a hidden sample vector
@@ -129,25 +123,17 @@ class RBM(Module):
             visible = self.sample_v_given_h(self.sample_h_given_v(visible))
         return visible
 
-    def proba_h_given_v(self, visible):
-        """ Probability vector of hidden state given visible pattern vector
-        """
-        return self._hidden_activation(self._net_hidden(visible))
-
-    def proba_v_given_h(self, hidden):
-        """ Probability vector of visible pattern given hidden state vector
-        """
-        return self._visible_activation(self._net_visible(hidden))
-
     def sample_h_given_v(self, visible):
         """ Sample a hidden state given a visible pattern
         """
-        return self.__class__.hidden_sampler(self.proba_h_given_v(visible))
+        probabilities = self.hidden_activation(self._net_hidden(visible))
+        return torch.bernoulli(probabilities)
 
     def sample_v_given_h(self, hidden):
         """ Sample a visible pattern given hidden state vector
         """
-        return self.__class__.visible_sampler(self.proba_v_given_h(hidden))
+        probabilities = self.visible_activation(self._net_visible(hidden))
+        return torch.bernoulli(probabilities)
 
     @property
     def visible_units(self):
