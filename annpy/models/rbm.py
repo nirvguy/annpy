@@ -55,6 +55,9 @@ class RBM(Module):
 
     visible_sampler = torch.bernoulli
     hidden_sampler = torch.bernoulli
+    @staticmethod
+    def random_uniform_tensor(dtype, shape, std=0.01):
+        return torch.normal(means=torch.zeros(*shape), std=std).type(dtype)
 
     def __init__(self,
                  nr_visible, nr_hiddens,
@@ -82,8 +85,6 @@ class RBM(Module):
                          dtype=torch.FloatTensor):
         """ Reset the network parameters such as weights and hidden and visible biases
         """
-        def random_uniform_tensor(*shape):
-            return torch.normal(means=torch.zeros(*shape), std=0.01).type(dtype)
 
         self._visible_activation = self.__class__.visible_activation_module()
         self._hidden_activation = self.__class__.hidden_activation_module()
@@ -91,17 +92,17 @@ class RBM(Module):
         if initial_weights is not None:
             self.weights = Parameter(initial_weights)
         else:
-            self.weights = Parameter(random_uniform_tensor(self._nr_visible, self._nr_hiddens))
+            self.weights = Parameter(self.random_uniform_tensor(dtype, (self._nr_visible, self._nr_hiddens)))
 
         if initial_visible_biases is not None:
             self.visible_biases = Parameter(initial_visible_biases)
         else:
-            self.visible_biases = Parameter(random_uniform_tensor(self._nr_visible))
+            self.visible_biases = Parameter(self.random_uniform_tensor(dtype, (self._nr_visible, )))
 
         if initial_hidden_biases is not None:
             self.hidden_biases = Parameter(initial_hidden_biases)
         else:
-            self.hidden_biases = Parameter(random_uniform_tensor(self._nr_hiddens))
+            self.hidden_biases = Parameter(self.random_uniform_tensor(dtype, (self._nr_hiddens, )))
 
     def _net_visible(self, hidden):
         """ Return the net visible stimulus given a hidden sample vector
