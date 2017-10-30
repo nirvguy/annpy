@@ -45,7 +45,7 @@ class StatusHook(TrainingHook):
         print('\tEpoch {} started...'.format(self._trainer.epoch+1))
 
     def post_epoch(self):
-        print('\tEpoch {} finished.'.format(self._trainer.epoch+1))
+        print('\tEpoch {} finished.'.format(self._trainer.epoch))
 
     def post_training(self):
         print('Training ended.')
@@ -80,7 +80,7 @@ class ErrorHook(TrainingHook):
     def post_epoch(self):
         error = self.error_calculator()
         self._errors.append(error)
-        print("Epoch {} error: {}.".format(self._trainer.epoch+1, error))
+        print("Epoch {} error: {}.".format(self._trainer.epoch, error))
 
 class TimingHook(TrainingHook):
     """ Training Hook for log the training time between epochs
@@ -107,5 +107,5 @@ class TimingHook(TrainingHook):
 
         eta = self.mean_error() * self._trainer._remaining_epochs
 
-        print("Epoch {} training time: {}".format(self._trainer.epoch+1, self.time_format(elapsed_seconds)))
+        print("Epoch {} training time: {}".format(self._trainer.epoch, self.time_format(elapsed_seconds)))
         print("ETA: {}".format(self.time_format(eta)))

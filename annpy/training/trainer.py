@@ -36,11 +36,13 @@ class Trainer(object):
 
         for _ in range(epochs):
             self._notify('pre_epoch')
+
             for batch in batchs:
                 self._learning_rule.step(batch)
-            self._notify('post_epoch')
+
             self._epoch += 1
             self._remaining_epochs -= 1
+            self._notify('post_epoch')
 
         self._notify('post_training')
 
