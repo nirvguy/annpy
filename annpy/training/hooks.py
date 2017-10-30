@@ -90,6 +90,10 @@ class TimingHook(TrainingHook):
         super(TimingHook, self).__init__(trainer)
         self._epoch_times = []
 
+    @property
+    def epoch_times(self):
+        return self._epoch_times
+
     @staticmethod
     def time_format(elapsed_seconds):
         return str(timedelta(seconds=elapsed_seconds))
