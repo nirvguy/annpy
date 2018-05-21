@@ -30,7 +30,7 @@ class CDOptimizer(object):
             self.update(pattern)
 
         for parameter, update in self.deltas.items():
-            parameter.data.add_(update).div_(len(batch))
+            parameter.data.add_(update / len(batch))
 
         del self.deltas
 
