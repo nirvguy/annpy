@@ -20,7 +20,8 @@ class MLP(Module):
 
         for i in range(len(units)-1):
             layers.append(Linear(units[i], units[i+1]))
-            layers.append(activations[i])
+            if activations[i] is not None:
+                layers.append(activations[i])
 
         self._layers = Sequential(*layers)
 
@@ -36,21 +37,20 @@ class MLPClassifier(MLP):
         total_units = units + [len(classes)]
 
         if activations is None:
-            activations = [Sigmoid] * (len(units)-1)
-        activations.append(Softmax)
+            activations = [Sigmoid()] * (len(units)-1)
+        activations.append(None)
 
         super(MLPClassifier, self).__init__(total_units, activations)
         self._classes = classes
+        self.softmax = Softmax()
 
-    def proba(x):
-        return self.forward(x)
+    def proba(self, batch):
+        return self.softmax(self.forward(batch))
 
-    def predict(x):
-        proba = self.proba(x)
+    def predict(self, batch):
+        proba = self.proba(batch)
 
-        if x.dim() == 1:
-            _, pos_max = proba.max(0)
-        else:
-            _, pos_max = proba.max(1)
+        pos_max, _ = proba.topk(k=1)
+        pos_max = pos_max.data
 
-        return self._classes[pos_max.data]
+        return [self._classes[p] for p in pos_max]
