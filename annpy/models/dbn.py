@@ -3,20 +3,24 @@ from torch.nn import Parameter, ModuleList, Module
 from .base import LearningRule
 from .rbm import RBM
 
-class GreddyLearningRule(LearningRule):
-    def __init__(self, model, *learning_rules):
-        if len(learning_rules) != model.nr_layers():
-            raise Exception("Expected one learning rule per layer")
+class GreddyOptimizer(object):
+    def __init__(self, model, *optimizers):
+        if len(optimizers) != model.nr_layers():
+            raise Exception("Expected one optimizer per layer")
 
-        if not all(learning_rule.model is layer
-                   for layer, learning_rule in zip(model.layers, learning_rules)):
-            raise Exception("Learning rule not correpond with model")
+        if not all(optimizer.model is layer
+                   for layer, optimizer in zip(model.layers, optimizers)):
+            raise Exception("Optimizer not correpond with model")
 
-        super(GreddyLearningRule, self).__init__(model)
-        self.learning_rules = learning_rules
+        self._model = model
+        self.optimizers = optimizers
+
+    @property
+    def model(self):
+        return self._model
 
     def step(self, batch):
-        for i, learning_rule in enumerate(self.learning_rules):
+        for i, learning_rule in enumerate(self.optimizers):
             transformed_batch = self._model.sample_h_given_v(batch, i)
             learning_rule.step(transformed_batch)
 
@@ -63,6 +67,3 @@ class DBN(Module):
     @property
     def layers(self):
         return self._layers
-
-    def reconstruct_error_metric(self, metric, k):
-        return lambda x: metric(self.reconstruct(x, k), x)
