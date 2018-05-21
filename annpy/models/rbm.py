@@ -1,38 +1,38 @@
 # See LICENSE file for copyright and license details.
 import torch
+from torch.autograd import Variable
 from torch.nn import Module, Parameter, Sigmoid
 from .base import LearningRule
 
-class CDRule(LearningRule):
-    """ Online Contrastive Divergence Learning Rule"""
-    def update_deltas(self, pattern, deltas):
-        v_sample, h_sample, v_sample_2, h_sample_2 = self.model.gibbs_sample(pattern)
+class CDOptimizer(object):
+    """ Contrastive Divergence Optimizer """
+    def update(self, pattern):
+        v_sample, h_sample, v_sample_2, h_sample_2 = self._model.gibbs_sample(pattern)
 
         positive_gradient = torch.ger(v_sample, h_sample)
         negative_gradient = torch.ger(v_sample_2, h_sample_2)
 
-        deltas[self._model.weights].add_(self._lr * (positive_gradient - negative_gradient))
-        deltas[self._model.visible_biases].add_(self._lr * (v_sample - v_sample_2))
-        deltas[self._model.hidden_biases].add_(self._lr * (h_sample - h_sample_2))
+        self.deltas[self._model.weights].add_(self._lr * (positive_gradient - negative_gradient).data)
+        self.deltas[self._model.visible_biases].add_(self._lr * (v_sample - v_sample_2).data)
+        self.deltas[self._model.hidden_biases].add_(self._lr * (h_sample - h_sample_2).data)
 
-    def reset_deltas(self, deltas):
-        deltas[self._model.weights] = torch.zeros(self.model.weights.data.shape)
-        deltas[self._model.visible_biases] = torch.zeros(self.model.visible_biases.data.shape)
-        deltas[self._model.hidden_biases] = torch.zeros(self.model.hidden_biases.data.shape)
+    def reset_deltas(self):
+        self.deltas[self._model.weights] = torch.zeros(self._model.weights.data.shape)
+        self.deltas[self._model.visible_biases] = torch.zeros(self._model.visible_biases.data.shape)
+        self.deltas[self._model.hidden_biases] = torch.zeros(self._model.hidden_biases.data.shape)
 
     def step(self, batch):
-        deltas = {}
-        for index in range(0, len(batch), self.mini_batch_size):
-            n = 0
-            self.reset_deltas(deltas)
+        self.deltas = {}
 
-            b = batch[index:index+self.mini_batch_size]
+        self.reset_deltas()
 
-            for pattern in b:
-                self.update_deltas(pattern, deltas)
+        for pattern in batch:
+            self.update(pattern)
 
-            for parameter, update in deltas.items():
-                parameter.data.add_(update).div_(len(b))
+        for parameter, update in self.deltas.items():
+            parameter.data.add_(update).div_(len(batch))
+
+        del self.deltas
 
     @property
     def learning_rate(self):
@@ -40,13 +40,12 @@ class CDRule(LearningRule):
 
     @learning_rate.setter
     def learning_rate(self, value):
-        self._lr = torch.Tensor([value]).type(self.dtype)
+        self._lr = float(value)
 
-    def __init__(self, model, lr=0.01, mini_batch_size=1, dtype=torch.FloatTensor):
-        super(CDRule, self).__init__(model)
+    def __init__(self, model, lr=0.01, dtype=torch.FloatTensor):
+        self._model = model
         self.dtype = dtype
         self.learning_rate = lr
-        self.mini_batch_size = mini_batch_size
 
 class RBM(Module):
     """ Restricted Boltzman Machine model """
@@ -102,16 +101,16 @@ class RBM(Module):
     def _net_visible(self, hidden):
         """ Return the net visible stimulus given a hidden sample vector
         """
-        x=hidden.matmul(self.weights.data.t())
+        x=hidden.matmul(self.weights.t())
 
-        return x + self.visible_biases.data
+        return x + self.visible_biases
 
     def _net_hidden(self, visible):
         """ Return the net hidden stimulus given a visible pattern vector
         """
-        x=visible.matmul(self.weights.data)
+        x=visible.matmul(self.weights)
 
-        return x + self.hidden_biases.data
+        return x + self.hidden_biases
 
     def reconstruct(self, visible, k=1):
         """ Reconstruct the true visible pattern
@@ -160,7 +159,7 @@ class RBM(Module):
         h_sample = self.sample_h_given_v(pattern)
 
         v_sample = None
-        h_sample_2 = torch.Tensor(h_sample)
+        h_sample_2 = h_sample
 
         for _ in range(samples):
             v_sample = self.sample_v_given_h(h_sample_2)
