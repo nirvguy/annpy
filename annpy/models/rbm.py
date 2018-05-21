@@ -35,6 +35,10 @@ class CDOptimizer(object):
         del self.deltas
 
     @property
+    def model(self):
+        return self._model
+
+    @property
     def learning_rate(self):
         return self._lr
 
