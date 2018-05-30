@@ -102,3 +102,56 @@ class GANTrainer(BatchTrainer):
         loss_g = self._d_criterion(output_d_generated, real_targets)
         loss_g.backward()
         self._g_optimizer.step()
+
+class ConditionalGANValidator(GANValidator):
+    def validate_batch(self, x, labels):
+        batch_size = len(x.data)
+        real_targets = self.real_targets(batch_size)
+        fake_targets = self.fake_targets(batch_size)
+
+        output_d_real = self.model.discriminate(x, labels)
+        loss_d_real = self._d_criterion(output_d_real, real_targets)
+        generated_x = self.model.sample(labels)
+        output_d_generated = self.model.discriminate(generated_x, labels)
+        loss_d_generated = self._d_criterion(output_d_generated, fake_targets)
+        # Combine losses
+        loss = loss_d_real + loss_d_generated
+
+        self.meters['val_loss'].measure(loss.data[0])
+        self.meters['val_d_loss'].measure(loss_d_real.data[0])
+        self.meters['val_g_loss'].measure(loss_d_generated.data[0])
+
+class ConditionalGANTrainer(GANTrainer):
+    def create_validator(self):
+        return ConditionalGANValidator(self.model, self.val_meters)
+
+    def update_batch(self, x, labels):
+        batch_size = len(x.data)
+        real_targets = self.real_targets(batch_size)
+        fake_targets = self.fake_targets(batch_size)
+
+        self._d_optimizer.zero_grad()
+
+        # Discriminate real data
+        output_d_real = self.model.discriminate(x, labels)
+        loss_d_real = self._d_criterion(output_d_real, real_targets)
+        loss_d_real.backward()
+        # Discriminate on generated data
+        generated_x = self.model.sample(labels)
+        output_d_generated = self.model.discriminate(generated_x, labels)
+        loss_d_generated = self._d_criterion(output_d_generated, fake_targets)
+        loss_d_generated.backward()
+        # Combine losses
+        loss = loss_d_real + loss_d_generated
+        self._d_optimizer.step()
+
+        self.train_meters['train_loss'].measure(loss.data[0])
+        self.train_meters['train_d_loss'].measure(loss_d_real.data[0])
+        self.train_meters['train_g_loss'].measure(loss_d_generated.data[0])
+
+        self._g_optimizer.zero_grad()
+        generated_x = self.model.sample(labels)
+        output_d_generated = self.model.discriminate(generated_x, labels)
+        loss_g = self._d_criterion(output_d_generated, real_targets)
+        loss_g.backward()
+        self._g_optimizer.step()
