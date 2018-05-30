@@ -60,3 +60,14 @@ class GAN(CudaMixin, nn.Module):
         super(GAN, self).cpu()
         self.generator.cpu()
         self.discriminator.cpu()
+
+class ConditionalGAN(GAN):
+    def sample(self, labels):
+        x = self._sample_input(len(labels))
+        return self.generator(Variable(x), labels)
+
+    def discriminate(self, x, labels):
+        return self.discriminator(x, labels)
+
+    def discriminate_proba(self, x, labels):
+        return nn.Sigmoid()(self.discriminator(x, labels))
