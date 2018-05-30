@@ -1,6 +1,6 @@
 # See LICENSE file for copyright and license details.
 import torch
-from torch.nn import Module, Parameter, Sigmoid, Sequential
+from torch.nn import Module, Parameter, Sigmoid, Sequential, BatchNorm1d
 from torch.nn.modules import Linear
 from torch.nn import MSELoss
 from torch.autograd import Variable
@@ -11,7 +11,8 @@ from .activations import Softmax
 class MLP(Module):
     def __init__(self,
                  units,
-                 activations=None):
+                 activations=None,
+                 batch_norm=False):
         super(MLP, self).__init__()
         layers = []
 
@@ -22,6 +23,8 @@ class MLP(Module):
             layers.append(Linear(units[i], units[i+1]))
             if activations[i] is not None:
                 layers.append(activations[i])
+            if batch_norm:
+                layers.append(BatchNorm1d(units[i+1]))
 
         self._layers = Sequential(*layers)
 
@@ -33,14 +36,14 @@ class MLP(Module):
                                 " -> ".join(map(repr, self._layers)))
 
 class MLPClassifier(MLP):
-    def __init__(self, units, classes, activations=None):
+    def __init__(self, units, classes, activations=None, batch_norm=False):
         total_units = units + [len(classes)]
 
         if activations is None:
             activations = [Sigmoid()] * (len(units)-1)
         activations.append(None)
 
-        super(MLPClassifier, self).__init__(total_units, activations)
+        super(MLPClassifier, self).__init__(total_units, activations, batch_norm=batch_norm)
         self._classes = classes
         self.softmax = Softmax()
 
