@@ -7,3 +7,5 @@ Package for experiment with different types of neural network in Python
 * Restricted Boltzmann Machines
 * Deep Belief Networks
 * Multi-layer Perceptrons
+* Generative Adversarial Networks
+* Conditional Generative Adversarial Networks
