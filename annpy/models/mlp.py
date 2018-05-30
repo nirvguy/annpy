@@ -16,7 +16,7 @@ class MLP(Module):
         layers = []
 
         if activations is None:
-            activations = [Sigmoid] * (len(units)-1)
+            activations = [Sigmoid()] * (len(units)-1)
 
         for i in range(len(units)-1):
             layers.append(Linear(units[i], units[i+1]))
