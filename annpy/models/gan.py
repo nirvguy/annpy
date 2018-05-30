@@ -1,4 +1,6 @@
+from abc import abstractmethod
 import torch
+from torch.autograd import Variable
 from torch import nn
 from torchtrainer.utils.mixins import CudaMixin
 
