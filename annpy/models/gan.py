@@ -28,8 +28,6 @@ class Discriminator(nn.Module):
 
 
 class GAN(CudaMixin, nn.Module):
-    USE_CUDA = False
-
     def __init__(self, discriminator, generator):
         super(GAN, self).__init__()
         self.discriminator = discriminator
